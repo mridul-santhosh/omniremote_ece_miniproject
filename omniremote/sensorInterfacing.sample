@@ -1,0 +1,114 @@
+#include <SPI.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+#include <BH1750.h>
+#include "DHT.h"
+
+#define DHTPIN 13
+#define WIRE Wire
+
+void displayScrollText(String a, String b, String c);
+
+Adafruit_SSD1306 display = Adafruit_SSD1306(128, 32, &WIRE);
+BH1750 lightMeter;
+#define DHTTYPE DHT11   // DHT 11
+
+DHT dht(DHTPIN, DHTTYPE);
+
+
+void setup() {
+  Serial.begin(9600);
+  // Initialize the I2C bus (BH1750 library doesn't do this automatically)
+  Wire.begin();
+  // On esp8266 you can select SCL and SDA pins using Wire.begin(D4, D3);
+  // For Wemos / Lolin D1 Mini Pro and the Ambient Light shield use Wire.begin(D2, D1);
+  dht.begin();
+
+  lightMeter.begin();
+  Serial.println("OLED FeatherWing test");
+  // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
+  display.begin(SSD1306_SWITCHCAPVCC, 0x3C); // Address 0x3C for 128x32
+  display.setTextWrap(false);
+  // text display tests
+  display.setTextSize(2.8);
+  display.setTextColor(SSD1306_WHITE);
+
+}
+
+void loop() {
+  // display.setCursor(0,0);
+  float lux = lightMeter.readLightLevel();
+  Serial.print("Light: ");
+  Serial.print(lux);
+  Serial.println(" lx");
+  String light = "Lit : " + String(lux) + F("lx     ");
+  // display.print(light);
+  
+
+  // Reading temperature or humidity takes about 250 milliseconds!
+  // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
+  float h = dht.readHumidity();
+  // Read temperature as Celsius (the default)
+  float t = dht.readTemperature();
+  // display.setCursor(0,10);
+  String temerature = "Temp : " + String(t) + F((char)247 + "C     ");
+  // display.print(temerature);
+  String humidity = "Hum : " + String(h) + F("%     ");
+  // display.print(humidity);
+  // Check if any reads failed and exit early (to try again).
+  // if (isnan(h) || isnan(t)) {
+  //   Serial.println(F("Failed to read from DHT sensor!"));
+  //   return;
+  // }
+  // display.display();
+
+  // Serial.print(F("Humidity: "));
+  // Serial.print(h);
+  // Serial.print(F("%  Temperature: "));
+  // Serial.print(t);
+  // Serial.print(F("°C "));
+  // delay(1000);
+  // display.clearDisplay();
+  displayScrollText(light, humidity, temerature);
+  
+}
+
+
+void displayScrollText(String a, String b, String c) {
+  // Scroll through values: light, temperature, humidity
+  String displayText;
+  for (int i = 0; i < 3; i++) {
+    // Determine which value to display
+    if (i == 0) {
+      displayText = a;
+    } else if (i == 1) {
+      displayText = b;
+    } else {
+      displayText = c;
+    }
+
+    // Get text width
+    int textWidth = displayText.length();
+      Serial.println(textWidth);
+
+
+    
+    // Start scrolling from right to left
+    for (int x = 135; x > -textWidth; x--) {
+      // Clear the display buffer
+      display.clearDisplay();
+
+      // Display the text
+      display.setCursor(x, 5);
+      display.print(displayText);
+      display.display();
+
+      // Delay to control scrolling speed
+      delay(50); // Adjust as needed for desired speed
+    }
+
+    // Delay before switching to the next value
+    delay(1000); // Adjust as needed
+  }
+}
